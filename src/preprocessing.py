@@ -1,4 +1,4 @@
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 
 def preprocess(dataset: Dataset) -> Dataset:
     """
@@ -12,6 +12,7 @@ def preprocess(dataset: Dataset) -> Dataset:
     """
     dataset = _remove_and_rename_features(dataset)
     dataset = _split_data(dataset)
+    print(dataset)
     dataset = _remove_unwated_samples(dataset)
     dataset = _preprocess_captions(dataset)
     dataset = _preprocess_images(dataset)
@@ -40,7 +41,17 @@ def _split_data(dataset: Dataset) -> Dataset:
     Returns:
         Dataset: a dataset split into train, validation, and test datasets
     """
-    pass
+    # 70% train, 30% test + validation
+    train_valtest = dataset.train_test_split(test_size=0.3, seed=42)
+    # Split the 30% test in half for validation and half for testing
+    val_test = train_valtest['test'].train_test_split(test_size=0.5, shuffle=False)
+
+    train_test_valid_dataset = DatasetDict({
+        'train': train_valtest['train'],
+        'valid': val_test['train'],
+        'test': val_test['test']})
+    return train_test_valid_dataset
+
 
 def _remove_unwated_samples(dataset: Dataset) -> Dataset:
     """
