@@ -1,5 +1,8 @@
 from datasets import Dataset, DatasetDict
-from src.CLIP_score import compute_CLIP
+import torch
+import numpy as np
+from transformers import CLIPProcessor, CLIPModel
+import torch.nn.functional as F
 
 
 def preprocess(dataset: Dataset) -> Dataset:
@@ -96,7 +99,7 @@ def _remove_unwated_samples(dataset: DatasetDict) -> DatasetDict:
 
     # remove low CLIP scores
     dataset = dataset.filter(
-        lambda example: compute_CLIP(example["image"], example["prompt"]) < 20
+        lambda example: _compute_CLIP(example["image"], example["prompt"]) < 20
     )
 
     return dataset
@@ -132,18 +135,60 @@ def _preprocess_images(dataset: Dataset) -> Dataset:
 def _preprocess_caption(example: dict) -> dict:
     """
     Preprocesses a single caption
-    
+
     Args:
         example (dict): example with a caption
 
     Returns:
-        dict: the same example with 
+        dict: the same example with
     """
     # lowercase
-    caption = example['prompt'].lower()
+    caption = example["prompt"].lower()
     # cut out first 5 words
-    caption = caption.split(' ', 6)[6]
+    caption = caption.split(" ", 6)[6]
     # set max length
-    example['prompt'] = caption
+    example["prompt"] = caption
     return example
-    
+
+
+def _compute_CLIP(image: np.ndarray, text: str) -> float:
+    """
+    Computes the CLIP scores between an image and a text
+
+    Args:
+       image (np.ndarray): an image
+       text (str): a text describing the image
+
+    Returns:
+        float: the CLIP score for the provided image and text (between 0 and 100)
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+    # Prepare inputs: convert image and text into tensors, tokenize text, resize image
+    inputs = processor(
+        text=[text], images=image, return_tensors="pt", padding=True, truncation=True
+    ).to(device)
+
+    with torch.no_grad():  # turns of gradient tracking
+        # Run the CLIP model
+        outputs = model(**inputs)
+
+        # Extract embeddings
+        image_embeddings = outputs.image_embeds
+        text_embeddings = outputs.text_embeds
+
+        # Normalize embeddings
+        image_embeddings = F.normalize(image_embeddings, dim=-1)
+        text_embeddings = F.normalize(text_embeddings, dim=-1)
+
+        # Compute similarity between image and text
+        similarity = image_embeddings @ text_embeddings.T
+
+        score = similarity.item()
+
+    final_score = max(score, 0) * 100
+
+    return final_score
