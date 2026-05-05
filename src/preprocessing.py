@@ -112,10 +112,7 @@ def _preprocess_captions(dataset: Dataset) -> Dataset:
     Returns:
         Dataset: dataset with preprocessed captions
     """
-    # lowercase
-    # tokenize
-    # cut out tokens
-    # set max length
+    return dataset.map(_preprocess_caption)
 
 
 def _preprocess_images(dataset: Dataset) -> Dataset:
@@ -130,3 +127,23 @@ def _preprocess_images(dataset: Dataset) -> Dataset:
     """
     # fixed resolution??
     # brightness normalization
+
+
+def _preprocess_caption(example: dict) -> dict:
+    """
+    Preprocesses a single caption
+    
+    Args:
+        example (dict): example with a caption
+
+    Returns:
+        dict: the same example with 
+    """
+    # lowercase
+    caption = example['prompt'].lower()
+    # cut out first 5 words
+    caption = caption.split(' ', 6)[6]
+    # set max length
+    example['prompt'] = caption
+    return example
+    
