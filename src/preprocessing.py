@@ -6,8 +6,17 @@ import torch.nn.functional as F
 from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
 # import supervision
-# from PIL import Image
+from PIL import Image
 
+# GLOBAL MODEL LOADING
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+CLIP_MODEL = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(DEVICE)
+CLIP_PROCESSOR = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+YOLO_PATH = hf_hub_download(
+        repo_id="arnabdhar/YOLOv8-Face-Detection", filename="model.pt"
+    )
+
+YOLO_MODEL = YOLO(YOLO_PATH)
 
 def preprocess(dataset: Dataset) -> Dataset:
     """
@@ -21,7 +30,7 @@ def preprocess(dataset: Dataset) -> Dataset:
     """
     dataset = _remove_and_rename_features(dataset)
     dataset = _split_data(dataset)
-    dataset = _remove_unwated_samples(dataset)
+    dataset = _remove_unwanted_samples(dataset)
     dataset = _preprocess_captions(dataset)
     dataset = _preprocess_images(dataset)
     return dataset
@@ -68,7 +77,7 @@ def _split_data(dataset: Dataset) -> Dataset:
     return train_test_valid_dataset
 
 
-def _remove_unwated_samples(dataset: DatasetDict) -> DatasetDict:
+def _remove_unwanted_samples(dataset: DatasetDict) -> DatasetDict:
     """
     Removes unwanted samples (null values, nudity, multiple people, low CLIP scores) from a dataset
 
@@ -79,11 +88,11 @@ def _remove_unwated_samples(dataset: DatasetDict) -> DatasetDict:
         Dataset: the dataset with removed unwanted samples
     """
     # remove null values
-    dataset = dataset.filter(lambda example: example["image"] is None)
+    dataset = dataset.filter(lambda example: example["image"] is not None)
 
     # remove nudity and multiple people
     dataset = dataset.filter(
-        lambda example: any(
+        lambda example: not any(
             [
                 word in example["prompt"]
                 for word in [
@@ -130,6 +139,9 @@ def _preprocess_images(dataset: Dataset) -> Dataset:
     """
     # crop images
     dataset = dataset.map(_crop_images)
+    # standardize images
+    dataset = dataset.map(_standardize_images)
+    return dataset
 
 
 def _preprocess_caption(example: dict) -> dict:
@@ -143,9 +155,11 @@ def _preprocess_caption(example: dict) -> dict:
         dict: the same example with the augmented caption
     """
     # lowercase
-    caption = example["prompt"].lower()
+    caption = example["prompt"].lower().strip()
     # cut out first 5 words
-    caption = caption.split(" ", 6)[6]
+    words = caption.split()
+    if len(words) > 5: # I included that in case there are very short captions
+        caption = " ".join(words[5:])
     # set max length
     example["prompt"] = caption
     return example
@@ -162,19 +176,14 @@ def _compute_CLIP(image: np.ndarray, text: str) -> float:
     Returns:
         float: the CLIP score for the provided image and text (between 0 and 100)
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-
     # Prepare inputs: convert image and text into tensors, tokenize text, resize image
-    inputs = processor(
+    inputs = CLIP_PROCESSOR(
         text=[text], images=image, return_tensors="pt", padding=True, truncation=True
-    ).to(device)
+    ).to(DEVICE)
 
     with torch.no_grad():  # turns of gradient tracking
         # Run the CLIP model
-        outputs = model(**inputs)
+        outputs = CLIP_MODEL(**inputs)
 
         # Extract embeddings
         image_embeddings = outputs.image_embeds
@@ -204,16 +213,7 @@ def _crop_images(example: dict) -> dict:
     Returns:
         dict: the same example with the updated image
     """
-    
-    # download model
-    model_path = hf_hub_download(
-        repo_id="arnabdhar/YOLOv8-Face-Detection", filename="model.pt"
-    )
-
-    # load model
-    model = YOLO(model_path)
-
-    results = model(example["image"])[0]
+    results = YOLO_MODEL(example["image"])[0]
     # detections = supervision.Detections.from_ultralytics(results)
     h, w = example["image"].shape[:2]
     boxes = results.boxes.xyxy.cpu().numpy()
@@ -241,5 +241,36 @@ def _crop_images(example: dict) -> dict:
         y2_new = min(h, y2 + pad_y_down)
 
         example["image"] = example["image"][y1_new:y2_new, x1_new:x2_new]
+
+    return example
+
+def _standardize_images(example):
+    """
+    Standardizes an image by ensuring every image is RGB, NumPY array,
+    has consistent size and dtype.
+
+    Args:
+        example (dict): example with an image
+
+    Returns:
+        dict: the same example with the updated image
+    """
+    target_size = (224, 224)
+    image = example.get("image")
+
+    # convert to RGB
+    if isinstance(image, Image.Image):
+        image = image.convert("RGB")
+        image = np.array(image)
+
+    # ensure 3 channels (RGB)
+    if len(image.shape) == 2:
+        image = np.stack([image] * 3, axis=-1)
+
+    # resize
+    image = Image.fromarray(image)
+    image = image.resize(target_size)
+
+    example["image"] = np.array(image)
 
     return example
