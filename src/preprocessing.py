@@ -3,6 +3,10 @@ import torch
 import numpy as np
 from transformers import CLIPProcessor, CLIPModel
 import torch.nn.functional as F
+from huggingface_hub import hf_hub_download
+from ultralytics import YOLO
+# import supervision
+# from PIL import Image
 
 
 def preprocess(dataset: Dataset) -> Dataset:
@@ -88,10 +92,6 @@ def _remove_unwated_samples(dataset: DatasetDict) -> DatasetDict:
                     "breasts",
                     "undressed",
                     "topless",
-                    "man and woman",
-                    "men",
-                    "women",
-                    "people",
                 ]
             ]
         )
@@ -128,8 +128,8 @@ def _preprocess_images(dataset: Dataset) -> Dataset:
     Returns:
         Dataset: dataset with preprocessed images
     """
-    # fixed resolution??
-    # brightness normalization
+    # crop images
+    dataset = dataset.map(_crop_images)
 
 
 def _preprocess_caption(example: dict) -> dict:
@@ -192,3 +192,44 @@ def _compute_CLIP(image: np.ndarray, text: str) -> float:
     final_score = max(score, 0) * 100
 
     return final_score
+
+
+def _crop_images(example):
+    # download model
+    model_path = hf_hub_download(
+        repo_id="arnabdhar/YOLOv8-Face-Detection", filename="model.pt"
+    )
+
+    # load model
+    model = YOLO(model_path)
+
+    results = model(example["image"])[0]
+    # detections = supervision.Detections.from_ultralytics(results)
+    h, w = example["image"].shape[:2]
+    boxes = results.boxes.xyxy.cpu().numpy()
+
+    if len(boxes) != 1:
+        example["image"] = None
+        return example
+
+    for box in boxes:
+        x1, y1, x2, y2 = map(int, box)
+
+        # box width/height
+        bw = x2 - x1
+        bh = y2 - y1
+
+        # padding
+        pad_x = int(0.5 * bw)
+        pad_y_down = int(0.3 * bh)
+        pad_y_up = int(0.5 * bh)
+
+        # expand box safely
+        x1_new = max(0, x1 - pad_x)
+        y1_new = max(0, y1 - pad_y_up)
+        x2_new = min(w, x2 + pad_x)
+        y2_new = min(h, y2 + pad_y_down)
+
+        example["image"] = example["image"][y1_new:y2_new, x1_new:x2_new]
+
+    return example
