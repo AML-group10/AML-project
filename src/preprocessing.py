@@ -140,7 +140,7 @@ def _preprocess_caption(example: dict) -> dict:
         example (dict): example with a caption
 
     Returns:
-        dict: the same example with
+        dict: the same example with the augmented caption
     """
     # lowercase
     caption = example["prompt"].lower()
@@ -194,7 +194,17 @@ def _compute_CLIP(image: np.ndarray, text: str) -> float:
     return final_score
 
 
-def _crop_images(example):
+def _crop_images(example: dict) -> dict:
+    """
+    Crops an image with a face centered
+
+    Args:
+        example (dict): example with an image
+
+    Returns:
+        dict: the same example with the updated image
+    """
+    
     # download model
     model_path = hf_hub_download(
         repo_id="arnabdhar/YOLOv8-Face-Detection", filename="model.pt"
