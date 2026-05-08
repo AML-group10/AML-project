@@ -87,15 +87,19 @@ def standardize_images(example):
     Returns:
         dict: the same example with the updated image
     """
-    target_size = (224, 224)
+    target_size = (512, 512)
     image = example.get("image")
 
-    # convert to RGB
-    if isinstance(image, Image.Image):
-        image = image.convert("RGB")
-        image = np.array(image)
+    # if numpy array from OpenCV -> convert BGR to RGB
+    if isinstance(image, np.ndarray):
+        if len(image.shape) == 3 and image.shape[2] == 3:
+            image = image[..., ::-1]   # BGR -> RGB
 
-    # ensure 3 channels (RGB)
+    # PIL conversion
+    image = Image.fromarray(image).convert("RGB")
+
+    # grayscale handling
+    image = np.array(image)
     if len(image.shape) == 2:
         image = np.stack([image] * 3, axis=-1)
 
