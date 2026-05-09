@@ -108,7 +108,7 @@ def _remove_unwanted_samples(dataset: DatasetDict) -> DatasetDict:
 
     # remove low CLIP scores
     dataset = dataset.filter(
-        lambda example: _compute_CLIP(example["image"], example["prompt"]) > 20
+        lambda example: _compute_CLIP(example["image"], example["prompt"][0]) > 20
     )
 
     return dataset
@@ -139,6 +139,7 @@ def _preprocess_images(dataset: Dataset) -> Dataset:
     """
     # crop images
     dataset = dataset.map(_crop_images)
+    dataset = dataset.filter(lambda example: example["image"] is not None)
     # standardize images
     dataset = dataset.map(_standardize_images)
     return dataset
@@ -155,13 +156,13 @@ def _preprocess_caption(example: dict) -> dict:
         dict: the same example with the augmented caption
     """
     # lowercase
-    caption = example["prompt"].lower().strip()
+    caption = example["prompt"].lower().strip(" ", 5)
     # cut out first 5 words
     words = caption.split()
-    if len(words) > 5: # I included that in case there are very short captions
-        caption = " ".join(words[5:])
+    if len(words) == 6: # I included that in case there are very short captions
+        caption = words[5]
     # set max length
-    example["prompt"] = caption
+    example["prompt"] = [caption]
     return example
 
 
@@ -213,9 +214,10 @@ def _crop_images(example: dict) -> dict:
     Returns:
         dict: the same example with the updated image
     """
-    results = YOLO_MODEL(example["image"])[0]
+    image = Image.fromarray(np.array(example["image"]).astype("uint8"))
+    results = YOLO_MODEL(image)[0]
     # detections = supervision.Detections.from_ultralytics(results)
-    h, w = example["image"].shape[:2]
+    h, w = np.array(example["image"]).shape[:2]
     boxes = results.boxes.xyxy.cpu().numpy()
 
     if len(boxes) != 1:
@@ -240,7 +242,7 @@ def _crop_images(example: dict) -> dict:
         x2_new = min(w, x2 + pad_x)
         y2_new = min(h, y2 + pad_y_down)
 
-        example["image"] = example["image"][y1_new:y2_new, x1_new:x2_new]
+        example["image"] = np.array(example["image"])[y1_new:y2_new, x1_new:x2_new]
 
     return example
 
@@ -256,7 +258,7 @@ def _standardize_images(example):
         dict: the same example with the updated image
     """
     target_size = (768, 768)
-    image = example.get("image")
+    image = np.array(example["image"]).astype("uint8")
 
     # if numpy array from OpenCV -> convert BGR to RGB
     if isinstance(image, np.ndarray):
