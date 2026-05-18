@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from scipy import linalg
-from fid_score.fid_score import FidScore
 from torchmetrics.image.fid import FrechetInceptionDistance
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader, Dataset
@@ -48,10 +47,17 @@ class Evaluator:
         return torch.cat([batch for batch in loader])
 
 
-    def compute_CLIP(self, image, text):
+    def compute_CLIP(self, image: Image.Image, text: str) -> float:
+        """
+        Args:
+            image: a PIL Image 
+            text: prompt/caption string
+        Returns:
+            float: roughly between -1 and 1
+        """
         inputs = self.processor(
             text=[text],
-            images=image,
+            images=image.convert("RGB"),
             return_tensors="pt",
             padding=True,
             truncation=True
@@ -74,13 +80,22 @@ class Evaluator:
 
             score = similarity.item()
 
-            # score = max(score, 0) * 100
-
         return score
     
 
-    def compute_CLIP_batch(self, images_dir, texts):
-        images, paths = self._load_images_pil(images_dir)
+    def compute_CLIP_batch(self, images_dir: str, texts: list[str]) -> dict:
+        """
+        Args:
+            images_dir (str): Folder path
+            texts (list[str]): List of captions
+        """
+        if isinstance(images_dir, (str, Path)):
+            images, _ = self._load_images_pil(images_dir)
+        else:
+            raise TypeError("'images_dir must be a folder path")
+        
+        if len(texts) != len(images):
+            raise ValueError(f"Got {len(images)} images, but {len(texts)} texts")
 
         scores = []
 
@@ -93,23 +108,7 @@ class Evaluator:
             "scores": scores
         }
 
-
-    def compute_FID1(self, real_images_dir, gen_images_dir, batch_size = 64):
-        """
-        real_images_dir: path to the folder with real images
-        gen_images_dir: path to the folder with generated images
-        """
-        paths = [str(real_images_dir), str(gen_images_dir)]
-        
-        fid = FidScore(paths, self.device, batch_size)
-        score = fid.calculate_fid_score()
-
-        print(f"FID Score: {score}")
-
-        return score
-
-
-    def compute_FID2(self, real_images_dir, gen_images_dir, batch_size=64):
+    def compute_FID(self, real_images_dir: str, gen_images_dir: str, batch_size: int =64) -> float:
         """
         real_images_dir: path to the folder with real images
         gen_images_dir: path to the folder with generated images
@@ -141,24 +140,26 @@ class Evaluator:
         return {"bias_score": float(bias_score), "group_means": group_means}
 
 
+def test_evaluation():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    evaluator = Evaluator(device=device)
 
-evaluator = Evaluator(device="cuda")
+    # CLIP
+    clip_results = evaluator.compute_CLIP_batch(
+        images_dir="evaluation/gen_test/",
+        texts=["A woman with brown mediun length hair", "A man with short dark hair and short beard", "A man with red t-shirt"]
+    )
+    print(f"CLIP scores {clip_results}")
 
-# CLIP
-clip_results = evaluator.compute_CLIP_batch(
-    images_dir="./dog/",
-    texts="a photo of TOK dog"
-)
-print(clip_results)
+    # FID
+    fid2 = evaluator.compute_FID("evaluation/real_test/", "evaluation/gen_test/")
+    print(f"FID2: {fid2:.2f}")
 
-# FID
-fid1 = evaluator.compute_FID1("./dog/", "./generated/")
-fid2 = evaluator.compute_FID2("./dog/", "./generated/")
-print(f"FID1: {fid1:.2f}  |  FID2: {fid2:.2f}")
+    # Bias
+    bias = evaluator.evaluate_bias({
+        "with_bucket": [0.31, 0.29, 0.33],
+        "without_bucket": [0.21, 0.19, 0.25],
+    })
+    print(bias)
 
-# Bias
-bias = evaluator.evaluate_bias({
-    "with_bucket": [0.31, 0.29, 0.33],
-    "without_bucket": [0.21, 0.19, 0.25],
-})
-print(bias)
+test_evaluation()
