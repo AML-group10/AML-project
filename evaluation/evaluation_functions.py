@@ -1,16 +1,24 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from scipy import linalg
 from torchmetrics.image.fid import FrechetInceptionDistance
-from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader, Dataset
 import torchvision.transforms as T
 from transformers import CLIPModel, CLIPProcessor
 from pathlib import Path
 from PIL import Image
+import pandas as pd
+import re
+
+# The file allows for evaluation of image generation quality and bias using CLIP and FID scores.
+# - CLIP score: measures how well a generated images matches the text caption
+# - FID score: measues how similar the distribution of generated images is to real images
+# - bias table: compares CLIP scores across attribute groups based on image captions
 
 class ImageFolderDataset(Dataset):
+  """
+  A PyTorch dataset that loads images from a folder on disk. All images are converted to RGB on load.
+  """
   def __init__(self, folder_path, transform=None):
         EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
         self.paths = [p for p in Path(folder_path).iterdir() if p.suffix.lower() in EXTENSIONS]
@@ -24,9 +32,13 @@ class ImageFolderDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image
-
+  
 
 class Evaluator:
+    """
+    Evaluates image generation quality and bias using CLIP and FID.
+    """
+
     def __init__(self, device="cuda"):
         self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
         self.device = device
@@ -35,19 +47,34 @@ class Evaluator:
         self.fid_transform = T.Compose([T.Resize((299, 299)), T.ToTensor(), T.Lambda(lambda x: (x * 255).byte())])
 
 
-    def _load_images_pil(self, folder_path):
+    def _load_images_pil(self, folder_path: str) -> tuple[list, list[str]]:
+        """
+        Load all images from a folder as PIL Images.
+        Args:
+            folder_path (str): path to the folder containing images
+        Returns:
+            Tuple of (list of PIL Images, list of file path strings)
+        """
         dataset = ImageFolderDataset(folder_path)
         return [dataset[i] for i in range(len(dataset))], [str(p) for p in dataset.paths]
 
 
     def _load_images_tensor(self, folder_path, batch_size=64):
+        """
+        Load a folder of images into a single batched tensor for FID.
+        Args:
+            folder_path: path to the folder containing images
+            batch_size: number of images to process at a time
+        Returns:
+            Tensor of shape (N, 3, 299, 299) with dtype uint8
+        """
         dataset = ImageFolderDataset(folder_path, transform=self.fid_transform)
         loader = DataLoader(dataset, batch_size=batch_size, num_workers=2)
   
         return torch.cat([batch for batch in loader])
 
 
-    def compute_CLIP(self, image: Image.Image, text: str) -> float:
+    def _compute_CLIP(self, image: Image.Image, text: str) -> float:
         """
         Args:
             image: a PIL Image 
@@ -85,6 +112,8 @@ class Evaluator:
 
     def compute_CLIP_batch(self, images_dir: str, texts: list[str]) -> dict:
         """
+        Compute CLIP scores for a batch of images and captions.
+
         Args:
             images_dir (str): Folder path
             texts (list[str]): List of captions
@@ -100,7 +129,7 @@ class Evaluator:
         scores = []
 
         for image, text in zip(images, texts):
-            scores.append(self.compute_CLIP(image, text))
+            scores.append(self._compute_CLIP(image, text))
         
         return {
             "mean_CLIP": float(np.mean(scores)),
@@ -110,8 +139,15 @@ class Evaluator:
 
     def compute_FID(self, real_images_dir: str, gen_images_dir: str, batch_size: int =64) -> float:
         """
-        real_images_dir: path to the folder with real images
-        gen_images_dir: path to the folder with generated images
+        Compute the Frechet Inception Distance between two folders of images.
+
+        Args:
+            real_images_dir: path to the folder with real images
+            gen_images_dir: path to the folder with generated images
+            batch_size: number of images to process at a time
+
+        Returns:
+            FID score as a flot, the lower the better
         """
         fid = FrechetInceptionDistance(feature=2048).to(self.device)
         fid.update(self._load_images_tensor(real_images_dir, batch_size).to(self.device), real = True)
@@ -121,45 +157,114 @@ class Evaluator:
 
         return score
 
-
-    def evaluate_bias(self, group_scores):
+    def _keyword_in_caption(self, kw: str, caption: str) -> bool:
         """
-        Each group has a list of scores. The scores can be CLIP scores, FID scores, human ratings etc.
-        The function computes mean scores within the groups and the variance between groups to measure
-        how different the group performances are.
+        Checks whether a keyword appears as a whole word in a caption.
+        """
+        return bool(re.search(rf"\b{re.escape(kw)}\b", caption.lower()))
+
+    def compute_attribute_clip_table(self, images, captions: list[str], attributes: dict) -> pd.DataFrame:
+        """
+        Compute a CLIP score comparison table across attribute groups.
 
         Args:
-            group_scores (dict(str : list(float))): Example - {"male": [0.5, 0.2, 0.1], "female": [0.9, 0.8, 0.4]}
+            images (str): folder path string
+            captions (list[str]): 
+            attributes (dict): example is {group: [keywords]}
+        Returns:
+            pd.DataFrame: table with columns Group | Mean CLIP | Std CLIP
         """
-        group_means = {group: np.mean(scores) for group, scores in group_scores.items()}
+        pil_images, _ = self._load_images_pil(images)
+        rows= []
 
-        values = list(group_means.values())
+        if len(pil_images) != len(captions):
+            raise ValueError(f"Got {len(pil_images)} images but {len(captions)} captions")
 
-        bias_score = np.var(values)
+        for group, keywords in attributes.items():
+            # filter images whose caption contains any keyword from this group
+            matched = [
+                (image, caption) for image, caption in zip(pil_images, captions)
+                if any(self._keyword_in_caption(kw, caption) for kw in keywords)
+            ]
+            print(f"matched: {matched}")
 
-        return {"bias_score": float(bias_score), "group_means": group_means}
+            if not matched:
+                rows.append({"Group": group, "Number of images": 0, "Mean CLIP": None, "Std CLIP": None})
+                continue
 
+            matched_images, matched_captions = zip(*matched)
+            scores = [self.compute_CLIP(img, cap) for img, cap in zip(matched_images, matched_captions)]
+
+            rows.append({
+                "Group":      group,
+                "Number of images": len(scores),
+                "Mean CLIP":  round(float(np.mean(scores)), 4),
+                "Std CLIP":   round(float(np.std(scores)),  4),
+            })
+
+        return pd.DataFrame(rows)
+
+
+attributes = {
+    "male": ["male", "man", "boy", "guy"],
+    "female": ["female", "woman", "girl", "lady"],
+    "young": ["young", "child", "teen", "baby"],
+    "old": ["old", "elderly"],
+    "white": ["white", "caucasian"],
+    "black": ["black", "african american"],
+    "asian": ["asian", "chinese", "japanese", "korean"],
+}
 
 def test_evaluation():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     evaluator = Evaluator(device=device)
+    captions = ["An asian woman with brown mediun length hair", "A man with short dark hair and short beard", "A man with red t-shirt"]
 
     # CLIP
     clip_results = evaluator.compute_CLIP_batch(
         images_dir="evaluation/gen_test/",
-        texts=["A woman with brown mediun length hair", "A man with short dark hair and short beard", "A man with red t-shirt"]
+        texts=captions
     )
-    print(f"CLIP scores {clip_results}")
+    print(f"CLIP scores: {clip_results}")
 
     # FID
     fid2 = evaluator.compute_FID("evaluation/real_test/", "evaluation/gen_test/")
     print(f"FID2: {fid2:.2f}")
 
     # Bias
-    bias = evaluator.evaluate_bias({
-        "with_bucket": [0.31, 0.29, 0.33],
-        "without_bucket": [0.21, 0.19, 0.25],
-    })
-    print(bias)
+    bias_df = evaluator.compute_attribute_clip_table("evaluation/gen_test/", captions, attributes)
+    print(bias_df.to_string(index=False))
+
+
+def run_evaluation(generated_images_path: str, real_images_path: str, captions: list[str], attributes_dict: dict):
+    """
+    Run a full evaluation pipeline on a set of generated images. Computes three metrics:
+    1. CLIP score
+    2. FID score
+    3. Bias table
+
+    Args:
+        generated_images_path (str): path to the folder containing generated images
+        real_images_path (str): path to the folder containing real images
+        captions (list[str]): list of caption strings, one per generated image in the same order
+            as the images in the folder
+        attributes_dict (dict): Dict mapping group names to lists of keywords
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    evaluator = Evaluator(device=device)
+
+    # CLIP scores
+    clip_results = evaluator.compute_CLIP_batch(
+        images_dir=generated_images_path,
+        texts=captions)
+    print(f"CLIP scores {clip_results}")
+
+    # FID scores
+    fid2 = evaluator.compute_FID(real_images_path, generated_images_path)
+    print(f"FID2: {fid2:.2f}")
+
+    # CLIP bias
+    bias_df = evaluator.compute_attribute_clip_table(generated_images_path, captions, attributes_dict)
+    print(bias_df.to_string(index=False))
 
 test_evaluation()
