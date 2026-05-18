@@ -1,0 +1,23 @@
+{
+  "_class_name": "WuerstchenPriorPipeline",
+  "_diffusers_version": "0.37.0",
+  "latent_mean": 42.0,
+  "latent_std": 1.0,
+  "prior": [
+    "wuerstchen",
+    "WuerstchenPrior"
+  ],
+  "resolution_multiple": 42.67,
+  "scheduler": [
+    "diffusers",
+    "DDPMWuerstchenScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "CLIPTextModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "TokenizersBackend"
+  ]
+}
