@@ -60,10 +60,10 @@ blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image
 
 # captioning utility
 def caption_images(input_image):
-    inputs = blip_processor(images=input_image, return_tensors="pt").to(device, torch.float16)
+    inputs = blip_processor(images=input_image, return_tensors="pt").to(device, torch.bfloat16)
     pixel_values = inputs.pixel_values
 
-    generated_ids = blip_model.generate(pixel_values=pixel_values, max_length=50)
+    generated_ids = blip_model.generate(pixel_values=pixel_values, max_length=50).to(device)
     generated_caption = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
     return generated_caption
 
@@ -91,7 +91,7 @@ login(token="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")
 """ Train """
 
 train_cmd = [
-    "accelerate", "launch", "src/models/training/train_dreambooth_lora_sdxl.py",
+    "python", "src/models/training/train_dreambooth_lora_sdxl.py",
     "--pretrained_model_name_or_path", "stabilityai/stable-diffusion-xl-base-1.0",
     "--pretrained_vae_model_name_or_path", "madebyollin/sdxl-vae-fp16-fix",
     "--instance_data_dir", "dog",
@@ -107,9 +107,10 @@ train_cmd = [
     "--lr_scheduler", "constant",
     "--lr_warmup_steps", "0",
     "--use_8bit_adam",
-    "--max_train_steps", "500",
+    "--max_train_steps", "100",
     "--checkpointing_steps", "717",
-    "--seed", "0",]
+    "--seed", "0",
+    ]
 
 subprocess.run(train_cmd, check=True)
 
@@ -157,11 +158,11 @@ pipe = DiffusionPipeline.from_pretrained(
     variant="fp16",
     use_safetensors=True
 )
-pipe.load_lora_weights(repo_id)
-_ = pipe.to("cuda")
+pipe.load_lora_weights("TeddyVDobreva/corgy_dog_LoRA")
+_ = pipe
 
 prompt = "a photo of husky dog in a pool" 
 
-image = pipe(prompt=prompt, num_inference_steps=25).images[0]
+image = pipe(prompt=prompt, num_inference_steps=1).images[0]
 image.save("output.png")
 print("Image saved to output.png")
