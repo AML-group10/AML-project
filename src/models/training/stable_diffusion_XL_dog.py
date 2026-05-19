@@ -86,18 +86,17 @@ del blip_processor, blip_model
 gc.collect()
 torch.cuda.empty_cache()
 
-login(token="put your token here")
+login(token="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")
 
 """ Train """
 
 train_cmd = [
-    "accelerate", "launch", "train_dreambooth_lora_sdxl.py",
+    "accelerate", "launch", "src/models/training/train_dreambooth_lora_sdxl.py",
     "--pretrained_model_name_or_path", "stabilityai/stable-diffusion-xl-base-1.0",
     "--pretrained_vae_model_name_or_path", "madebyollin/sdxl-vae-fp16-fix",
     "--instance_data_dir", "dog",
     "--output_dir", "corgy_dog_LoRA",
     "--caption_column", "text",
-    "--mixed_precision", "fp16",
     "--instance_prompt", "a photo of TOK dog",
     "--resolution", "1024",
     "--train_batch_size", "1",
@@ -110,8 +109,7 @@ train_cmd = [
     "--use_8bit_adam",
     "--max_train_steps", "500",
     "--checkpointing_steps", "717",
-    "--seed", "0",
-    "--cast_teacher_unet",]
+    "--seed", "0",]
 
 subprocess.run(train_cmd, check=True)
 
