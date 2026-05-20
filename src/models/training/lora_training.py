@@ -1,3 +1,23 @@
+"""
+
+To run it with tinySD: (BUT CHANGE THE PARAMETERS FOR THE ACTUAL TRAINING)
+lora_training.py --pretrained_model_name_or_path="segmind/tiny-sd" --train_data_dir="./images_test_dataset" --output_dir="./lora-output" --use_peft --lora_r=4 --lora_alpha=4 --resolution=512 --train_batch_size=1 --gradient_accumulation_steps=4 --num_train_epochs=100 --learning_rate=1e-4 --validation_prompt="people with toothbrushes" --seed=42
+
+The images for training folder structure:
+|- images_test_dataset/
+|  |- metadata.jsonl
+|  |- image0.jpg
+|  |- image1.jpg
+|  |- ..
+|- lora-output/
+|  |- .. (created automatically after training)
+
+metadata.jsonl file has to look as follows:
+{"file_name": "image0.jpg", "text": "your caption here"}
+{"file_name": "image1.jpg", "text": "your caption here"}
+...
+
+"""
 # coding=utf-8
 # Copyright 2023 The HuggingFace Inc. team. All rights reserved.
 #
@@ -31,7 +51,7 @@ import torch.utils.checkpoint
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import get_logger
-from accelerate.utils import ProjectConfiguration, set_seed
+from accelerate.utils import set_seed, ProjectConfiguration
 from datasets import load_dataset
 from huggingface_hub import create_repo, upload_folder
 from packaging import version
@@ -41,36 +61,15 @@ from transformers import CLIPTextModel, CLIPTokenizer
 
 import diffusers
 from diffusers import AutoencoderKL, DDPMScheduler, DiffusionPipeline, UNet2DConditionModel
-from diffusers.loaders import AttnProcsLayers
-from diffusers.models.attention_processor import LoRAAttnProcessor
+# from diffusers.loaders import AttnProcsLayers
+# from diffusers.models.attention_processor import LoRAAttnProcessor
 from diffusers.optimization import get_scheduler
 from diffusers.utils import check_min_version, is_wandb_available
 from diffusers.utils.import_utils import is_xformers_available
 
 
-"""
-To run it with tinySD
-python train_text_to_image_lora.py \
-  --pretrained_model_name_or_path="segmind/tiny-sd" \
-  --train_data_dir="./your-images-folder" \
-  --output_dir="./lora-output" \
-  --use_peft \
-  --lora_r=4 \
-  --lora_alpha=4 \
-  --resolution=512 \
-  --train_batch_size=1 \
-  --gradient_accumulation_steps=4 \
-  --num_train_epochs=100 \
-  --learning_rate=1e-4 \
-  --validation_prompt="your trigger word, a photo of a cat" \
-  --seed=42
-
-pip install torch torchvision diffusers==0.14.0 transformers accelerate peft datasets bitsandbytes xformers tqdm huggingface_hub packaging
-"""
-
-
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
-check_min_version("0.14.0.dev0")
+# check_min_version("0.14.0.dev0")
 
 logger = get_logger(__name__, log_level="INFO")
 
@@ -425,6 +424,8 @@ def main():
         log_with=args.report_to,
         project_config=accelerator_project_config,
     )
+
+
     if args.report_to == "wandb":
         if not is_wandb_available():
             raise ImportError("Make sure to install wandb if you want to use it for logging during training.")
@@ -494,7 +495,7 @@ def main():
             lora_dropout=args.lora_dropout,
             bias=args.lora_bias,
         )
-        unet = LoraModel(config, unet)
+        unet = LoraModel(unet, config, "default")
 
         vae.requires_grad_(False)
         if args.train_text_encoder:
@@ -505,44 +506,8 @@ def main():
                 lora_dropout=args.lora_text_encoder_dropout,
                 bias=args.lora_text_encoder_bias,
             )
-            text_encoder = LoraModel(config, text_encoder)
-    else:
-        # freeze parameters of models to save more memory
-        unet.requires_grad_(False)
-        vae.requires_grad_(False)
-
-        text_encoder.requires_grad_(False)
-
-        # now we will add new LoRA weights to the attention layers
-        # It's important to realize here how many attention weights will be added and of which sizes
-        # The sizes of the attention layers consist only of two different variables:
-        # 1) - the "hidden_size", which is increased according to `unet.config.block_out_channels`.
-        # 2) - the "cross attention size", which is set to `unet.config.cross_attention_dim`.
-
-        # Let's first see how many attention processors we will have to set.
-        # For Stable Diffusion, it should be equal to:
-        # - down blocks (2x attention layers) * (2x transformer layers) * (3x down blocks) = 12
-        # - mid blocks (2x attention layers) * (1x transformer layers) * (1x mid blocks) = 2
-        # - up blocks (2x attention layers) * (3x transformer layers) * (3x down blocks) = 18
-        # => 32 layers
-
-        # Set correct lora layers
-        lora_attn_procs = {}
-        for name in unet.attn_processors.keys():
-            cross_attention_dim = None if name.endswith("attn1.processor") else unet.config.cross_attention_dim
-            if name.startswith("mid_block"):
-                hidden_size = unet.config.block_out_channels[-1]
-            elif name.startswith("up_blocks"):
-                block_id = int(name[len("up_blocks.")])
-                hidden_size = list(reversed(unet.config.block_out_channels))[block_id]
-            elif name.startswith("down_blocks"):
-                block_id = int(name[len("down_blocks.")])
-                hidden_size = unet.config.block_out_channels[block_id]
-
-            lora_attn_procs[name] = LoRAAttnProcessor(hidden_size=hidden_size, cross_attention_dim=cross_attention_dim)
-
-        unet.set_attn_processor(lora_attn_procs)
-        lora_layers = AttnProcsLayers(unet.attn_processors)
+            text_encoder = LoraModel(text_encoder, config, "default")
+    
 
     # Move unet, vae and text_encoder to device and cast to weight_dtype
     vae.to(accelerator.device, dtype=weight_dtype)
@@ -884,9 +849,11 @@ def main():
                     f" {args.validation_prompt}."
                 )
                 # create pipeline
+                unwrapped_unet = accelerator.unwrap_model(unet)
+                unwrapped_unet = unwrapped_unet.model
                 pipeline = DiffusionPipeline.from_pretrained(
                     args.pretrained_model_name_or_path,
-                    unet=accelerator.unwrap_model(unet),
+                    unet=unwrapped_unet,
                     text_encoder=accelerator.unwrap_model(text_encoder),
                     revision=args.revision,
                     torch_dtype=weight_dtype,
@@ -927,7 +894,7 @@ def main():
             lora_config = {}
             unwarpped_unet = accelerator.unwrap_model(unet)
             state_dict = get_peft_model_state_dict(unwarpped_unet, state_dict=accelerator.get_state_dict(unet))
-            lora_config["peft_config"] = unwarpped_unet.get_peft_config_as_dict(inference=True)
+            lora_config["peft_config"] = {k: list(v) if isinstance(v, set) else v for k, v in unwarpped_unet.peft_config["default"].to_dict().items()}
             if args.train_text_encoder:
                 unwarpped_text_encoder = accelerator.unwrap_model(text_encoder)
                 text_encoder_state_dict = get_peft_model_state_dict(
@@ -935,9 +902,7 @@ def main():
                 )
                 text_encoder_state_dict = {f"text_encoder_{k}": v for k, v in text_encoder_state_dict.items()}
                 state_dict.update(text_encoder_state_dict)
-                lora_config["text_encoder_peft_config"] = unwarpped_text_encoder.get_peft_config_as_dict(
-                    inference=True
-                )
+                lora_config["text_encoder_peft_config"] = {k: list(v) if isinstance(v, set) else v for k, v in unwarpped_text_encoder.peft_config["default"].to_dict().items()}
 
             accelerator.save(state_dict, os.path.join(args.output_dir, f"{global_step}_lora.pt"))
             with open(os.path.join(args.output_dir, f"{global_step}_lora_config.json"), "w") as f:
@@ -982,12 +947,12 @@ def main():
             }
 
             unet_config = LoraConfig(**lora_config["peft_config"])
-            pipe.unet = LoraModel(unet_config, pipe.unet)
+            pipe.unet = LoraModel(pipe.unet, unet_config, "default")
             set_peft_model_state_dict(pipe.unet, unet_lora_ds)
 
             if "text_encoder_peft_config" in lora_config:
                 text_encoder_config = LoraConfig(**lora_config["text_encoder_peft_config"])
-                pipe.text_encoder = LoraModel(text_encoder_config, pipe.text_encoder)
+                pipe.text_encoder = LoraModel(pipe.text_encoder, text_encoder_config, "default")
                 set_peft_model_state_dict(pipe.text_encoder, text_encoder_lora_ds)
 
             if dtype in (torch.float16, torch.bfloat16):
