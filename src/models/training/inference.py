@@ -28,15 +28,13 @@ def load_and_set_lora_ckpt(pipe, dtype, step_count):
     if dtype in (torch.float16, torch.bfloat16):
         pipe.unet.half()
         pipe.text_encoder.half()
-
-    pipe.to("cuda")
     return pipe
 
 base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float16)
 model = load_and_set_lora_ckpt(base, torch.float16, 4)
 
 prompt = "Portrait of a pretty girl"
-image = model(prompt).images[0]
+image = model(prompt, num_inference_steps=30, generator=None).images[0]
 image.save("image_model")
 
 #base model
