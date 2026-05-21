@@ -33,8 +33,7 @@ def split_data(dataset: Dataset) -> Dataset:
     return train_test_valid_dataset
 
 
-def prepare_dataset(dataset: DatasetDict):
-    local_dir = "./faces/"
+def prepare_dataset(dataset: DatasetDict, local_dir):
     os.makedirs(local_dir, exist_ok=True)
     with open(f"{local_dir}metadata.jsonl", "w") as outfile:
         for index in range(len(dataset)):
@@ -54,7 +53,9 @@ def main():
     # data.push_to_hub("TeddyVDobreva/AML_project_preprocessed_dataset", split='train')
     data = load_dataset("TeddyVDobreva/AML_project_preprocessed_dataset", split="train")
     data = split_data(data)
-    prepare_dataset(data["train"])
+    prepare_dataset(data["train"], "./faces/train/")
+    prepare_dataset(data["valid"], "./faces/valid/")
+    prepare_dataset(data["test"], "./faces/test/")
     print(data)
 
 
