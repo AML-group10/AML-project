@@ -74,14 +74,15 @@ def run_training(data_dir: str) -> None:
 
 
 def main():
+    # # Prepare and save the data to hf hub
     # data = load_dataset("AML-group10/AML_project_dataset", split='train')
     # data = preprocess(data)
-    # data = split_data(data)
     # prepare_dataset(data["train"], "./faces/train/")
     # prepare_dataset(data["valid"], "./faces/valid/")
     # prepare_dataset(data["test"], "./faces/test/")
-
     # save_dataset_to_hub("./faces/")
+
+    # train the model
     run_training("AML-group10/AML_project_preprocessed_dataset")
 
 
