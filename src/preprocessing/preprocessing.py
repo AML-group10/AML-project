@@ -32,6 +32,7 @@ def preprocess(dataset: Dataset) -> Dataset:
     dataset = _remove_unwanted_samples(dataset)
     dataset = _preprocess_captions(dataset)
     dataset = _preprocess_images(dataset)
+    dataset =  _split_data(dataset)
     return dataset
 
 
@@ -138,6 +139,31 @@ def _preprocess_caption(example: dict) -> dict:
     # set max length
     example["prompt"] = [caption]
     return example
+
+
+def _split_data(dataset: Dataset) -> Dataset:
+    """
+    Spltits the data into train, validation, and test datasets
+
+    Args:
+        dataset (Dataset): the dataset to be split
+
+    Returns:
+        Dataset: a dataset split into train, validation, and test datasets
+    """
+    # 70% train, 30% test + validation
+    train_valtest = dataset.train_test_split(test_size=0.3, seed=42)
+    # Split the 30% test in half for validation and half for testing
+    val_test = train_valtest["test"].train_test_split(test_size=0.5, shuffle=False)
+
+    train_test_valid_dataset = DatasetDict(
+        {
+            "train": train_valtest["train"],
+            "valid": val_test["train"],
+            "test": val_test["test"],
+        }
+    )
+    return train_test_valid_dataset
 
 
 def _compute_CLIP(image: np.ndarray, text: str) -> float:
