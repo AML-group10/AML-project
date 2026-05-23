@@ -7,7 +7,7 @@ for lr in "${learning_rates[@]}"; do
 
     python3 lora_training.py \
     --pretrained_model_name_or_path="segmind/tiny-sd" 
-    --train_data_dir="./images_test_dataset" 
+    --train_data_dir="./AML-group10/AML_project_preprocessed_dataset" 
     --output_dir="./AML-group10/${lr}" 
     --use_peft 
     --lora_r=4 
