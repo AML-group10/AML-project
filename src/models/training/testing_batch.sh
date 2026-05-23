@@ -1,11 +1,6 @@
 #!/bin/bash
 
-learning_rates=(1e-4 3e-4 5e-4 1e-3)
-
-for lr in "${learning_rates[@]}"; do
-    echo "Learning rate $lr"
-
-    python3 src/models/training/lora_training.py \
+python3 src/models/training/lora_training.py \
     --pretrained_model_name_or_path="segmind/tiny-sd" \
     --dataset_name="AML-group10/AML_project_preprocessed_dataset" \
     --dataset_config_name="train" \
@@ -20,5 +15,3 @@ for lr in "${learning_rates[@]}"; do
     --learning_rate=1e-4 \
     --validation_prompt="people with toothbrushes" \
     --seed=67
-
-done
