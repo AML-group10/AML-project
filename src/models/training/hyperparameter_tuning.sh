@@ -17,7 +17,7 @@ for lr in "${learning_rates[@]}"; do
     --train_batch_size=512 \
     --gradient_accumulation_steps=1 \
     --num_train_epochs=100 \
-    --learning_rate=1e-4 \
+    --learning_rate=$lr\
     --validation_prompt="a man with curly black hair, blue eyes and a moustache" \
     --seed=67
 
