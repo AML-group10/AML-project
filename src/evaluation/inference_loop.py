@@ -45,9 +45,9 @@ for model_name, step_count in models:
     os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
     base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
-    model = load_and_set_lora_ckpt(base, step_count)  
+    model = load_and_set_lora_ckpt(base, model_name, step_count)  
     generator = torch.Generator(device="cpu").manual_seed(67)
-    print("Model loaded", model_name)
+    print("Model loaded", folder_name)
     
     for i, prompt in enumerate(prompts):
         image = model(prompt, num_inference_steps=30, generator=generator).images[0]
