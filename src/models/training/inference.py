@@ -28,14 +28,14 @@ def load_and_set_lora_ckpt(pipe, step_count):
     return pipe
 
 base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
-model = load_and_set_lora_ckpt(base, 10)
+# model = load_and_set_lora_ckpt(base, 10)
 
-print("Model loaded")
+# print("Model loaded")
 
-prompt = "Portrait of a pretty girl"
-generator = torch.Generator(device="cpu").manual_seed(67)
-image = model(prompt, num_inference_steps=30, generator=generator).images[0]
-image.save("image_model.jpeg")
+prompt = "a man with curly black hair, blue eyes and a moustache"
+# generator = torch.Generator(device="cpu").manual_seed(67)
+# image = model(prompt, num_inference_steps=30, generator=generator).images[0]
+# image.save("image_model.jpeg")
 
 #base model
 image = base(prompt).images[0]
