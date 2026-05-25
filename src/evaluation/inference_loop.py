@@ -23,6 +23,16 @@ attributes = {
     "asian": ["asian", "chinese", "japanese", "korean"],
 }
 
+"""("AML-group10/1e-4_20hyperparameter_tuning", 200), julia
+    ("AML-group10/1e-4_15hyperparameter_tuning", 150), julia
+    ("AML-group10/1e-4_10hyperparameter_tuning", 100), julia
+    ("AML-group10/5e-4_10hyperparameter_tuning", 100), teddy
+    ("AML-group10/5e-4_15hyperparameter_tuning", 150),teddy
+    ("AML-group10/5e-4_20hyperparameter_tuning", 200), teddy
+    ("AML-group10/3e-4_10hyperparameter_tuning", 100), sophie
+    ("AML-group10/3e-4_15hyperparameter_tuning", 150), sophie
+    ("AML-group10/3e-4_20hyperparameter_tuning", 200) sophie """
+
 # Loop over all 9 models
 models = [
     ("AML-group10/1e-4_20hyperparameter_tuning", 200),
