@@ -160,7 +160,7 @@ def parse_args():
     parser.add_argument(
         "--caption_column",
         type=str,
-        default="text",
+        default="prompt",
         help="The column of the dataset containing a caption or a list of captions.",
     )
     parser.add_argument(
@@ -1096,6 +1096,18 @@ def main():
         else:
             unet = unet.to(torch.float32)
             unet.save_attn_procs(args.output_dir)
+
+            # saving the pipeline
+            model_pipeline = DiffusionPipeline.from_pretrained(
+                args.pretrained_model_name_or_path,
+                unet = accelerator.unwrap_model(model),
+                text_encoder = accelerator.unwrap_model(text_encoder),
+                revision = args.revision
+            )
+
+            model_pipeline.save_pretrained(args.output_dir)
+            del pipeline
+            torch.cuda.empty_cache()
 
         if args.push_to_hub:
             save_model_card(
