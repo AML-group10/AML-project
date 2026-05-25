@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image
 import pandas as pd
 import re
+import json
 
 # The file allows for evaluation of image generation quality and bias using CLIP and FID scores.
 # - CLIP score: measures how well a generated images matches the text caption
@@ -236,7 +237,13 @@ def test_evaluation():
     print(bias_df.to_string(index=False))
 
 
-def run_evaluation(generated_images_path: str, real_images_path: str, captions: list[str], attributes_dict: dict):
+def run_evaluation(
+        generated_images_path: str, 
+        real_images_path: str, 
+        captions: list[str], 
+        attributes_dict: dict, 
+        output_file: str, 
+        compute_bias: bool):
     """
     Run a full evaluation pipeline on a set of generated images. Computes three metrics:
     1. CLIP score
@@ -249,6 +256,8 @@ def run_evaluation(generated_images_path: str, real_images_path: str, captions: 
         captions (list[str]): list of caption strings, one per generated image in the same order
             as the images in the folder
         attributes_dict (dict): Dict mapping group names to lists of keywords
+        output_file (str): Name of the file where the results will be saved
+        compute_bias (bool): True if the function should calculate bias table
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     evaluator = Evaluator(device=device)
@@ -260,11 +269,24 @@ def run_evaluation(generated_images_path: str, real_images_path: str, captions: 
     print(f"CLIP scores {clip_results}")
 
     # FID scores
-    fid2 = evaluator.compute_FID(real_images_path, generated_images_path)
-    print(f"FID2: {fid2:.2f}")
+    fid_score = evaluator.compute_FID(real_images_path, generated_images_path)
+    print(f"FID2: {fid_score:.2f}")
 
     # CLIP bias
-    bias_df = evaluator.compute_attribute_clip_table(generated_images_path, captions, attributes_dict)
-    print(bias_df.to_string(index=False))
+    if compute_bias:
+        bias_df = evaluator.compute_attribute_clip_table(generated_images_path, captions, attributes_dict)
+        print(bias_df.to_string(index=False))
 
-test_evaluation()
+    if output_file:
+        results = {
+            "model": generated_images_path,
+            "clip_mean": clip_results["mean_CLIP"],
+            "clip_std": clip_results["std_CLIP"],
+            "fid": fid_score,
+            "bias_table": bias_df.to_dict(orient="records") if compute_bias else {}
+        }
+
+        with open(output_file, "w") as f:
+            json.dump(results, f, indent=4)
+        
+        print(f"Results saved to {output_file}")
