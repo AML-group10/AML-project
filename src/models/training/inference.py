@@ -28,7 +28,7 @@ def load_and_set_lora_ckpt_original(pipe, step_count):
     pipe.to("cpu")
     return pipe
 
-def load_and_set_lora_ckpt(pipe, repo_id, step_count):
+def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
     config_path = hf_hub_download(repo_id=repo_id, filename=f"{step_count}_lora_config.json")
     weights_path = hf_hub_download(repo_id=repo_id, filename=f"{step_count}_lora.pt")
 
@@ -50,9 +50,10 @@ def load_and_set_lora_ckpt(pipe, repo_id, step_count):
         pipe.text_encoder = LoraModel(pipe.text_encoder, text_encoder_config, "default")
         set_peft_model_state_dict(pipe.text_encoder, text_encoder_lora_ds)
 
-    pipe.to("cpu")
+    pipe.to(device)
     return pipe
 
+"""
 base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
 # model = load_and_set_lora_ckpt(base, 10)
 
@@ -66,3 +67,4 @@ prompt = "a man with curly black hair, blue eyes and a moustache"
 #base model
 image = base(prompt).images[0]
 image.save("image_base.jpeg")
+"""

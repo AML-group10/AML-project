@@ -9,6 +9,7 @@ sys.path.append("/scratch/s5965780/AML-project/src")
 from models.training.inference import load_and_set_lora_ckpt
 
 # Load validation prompts from HuggingFace
+device = "cuda" if torch.cuda.is_available() else "cpu"
 dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", "valid", split="train")
 prompts = [item["prompt"][0] for item in dataset]
 
@@ -35,15 +36,7 @@ attributes = {
 
 # Loop over all 9 models
 models = [
-    ("AML-group10/1e-4_20hyperparameter_tuning", 200),
-    ("AML-group10/1e-4_15hyperparameter_tuning", 150),
-    ("AML-group10/1e-4_10hyperparameter_tuning", 100),
-    ("AML-group10/5e-4_10hyperparameter_tuning", 100),
-    ("AML-group10/5e-4_15hyperparameter_tuning", 150),
-    ("AML-group10/5e-4_20hyperparameter_tuning", 200),
-    ("AML-group10/3e-4_10hyperparameter_tuning", 100),
-    ("AML-group10/3e-4_15hyperparameter_tuning", 150),
-    ("AML-group10/3e-4_20hyperparameter_tuning", 200)
+    ("AML-group10/1e-4_20hyperparameter_tuning", 200)
 ]
 
 os.makedirs("real_validation", exist_ok=True)
@@ -56,9 +49,9 @@ for model_name, step_count in models:
     folder_name = model_name.split("/")[-1]
     os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
-    base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
-    model = load_and_set_lora_ckpt(base, model_name, step_count)  
-    generator = torch.Generator(device="cpu").manual_seed(67)
+    base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32.to(device))
+    model = load_and_set_lora_ckpt(base, model_name, step_count, device)  
+    generator = torch.Generator(device=device).manual_seed(67)
     print("Model loaded", folder_name)
     
     for i, prompt in enumerate(prompts):
