@@ -2,6 +2,8 @@ from datasets import load_dataset
 import os
 from evaluation_functions import run_evaluation
 from models.training.inference import load_and_set_lora_ckpt
+from diffusers import DiffusionPipeline 
+import torch
 
 # Load validation prompts from HuggingFace
 dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", split="valid")
@@ -31,7 +33,12 @@ models = [
     ("AML-group10/3e-4_20hyperparameter_tuning", 200)
 ]
 
+os.makedirs("real_validation", exist_ok=True)
 os.makedirs("validation_results", exist_ok=True)
+val_dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", split="valid")
+
+for i, item in enumerate(val_dataset):
+    item["image"].save(f"real_validation/image_{i}.jpeg")
 
 for model_name, step_count in models:
     folder_name = model_name.split("/")[-1]
@@ -39,15 +46,15 @@ for model_name, step_count in models:
 
     base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
     model = load_and_set_lora_ckpt(base, step_count)  
+    generator = torch.Generator(device="cpu").manual_seed(67)
     print("Model loaded", model_name)
     
     for i, prompt in enumerate(prompts):
-        generator = torch.Generator(device="cpu").manual_seed(67)
         image = model(prompt, num_inference_steps=30, generator=generator).images[0]
         image.save(f"generated/{folder_name}/image_{i}.jpeg")
 
 # Run evaluation on each folder
-for model_name in models:
+for model_name, _ in models:
     folder_name = model_name.split("/")[-1]
     run_evaluation(
         generated_images_path=f"generated/{folder_name}",
