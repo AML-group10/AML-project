@@ -1,13 +1,16 @@
 from datasets import load_dataset
 import os
 from evaluation_functions import run_evaluation
-from models.training.inference import load_and_set_lora_ckpt
 from diffusers import DiffusionPipeline 
 import torch
 
+import sys
+sys.path.append("/scratch/s5965780/AML-project/src")
+from models.training.inference import load_and_set_lora_ckpt
+
 # Load validation prompts from HuggingFace
-dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", split="valid")
-prompts = [item["prompt"] for item in dataset]
+dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", "valid", split="train")
+prompts = [item["prompt"][0] for item in dataset]
 
 # Attributes for evaluation
 attributes = {
@@ -35,9 +38,8 @@ models = [
 
 os.makedirs("real_validation", exist_ok=True)
 os.makedirs("validation_results", exist_ok=True)
-val_dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", split="valid")
 
-for i, item in enumerate(val_dataset):
+for i, item in enumerate(dataset):
     item["image"].save(f"real_validation/image_{i}.jpeg")
 
 for model_name, step_count in models:
