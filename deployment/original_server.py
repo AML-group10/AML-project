@@ -1,16 +1,15 @@
 import io
 
 import torch
+from diffusers import DiffusionPipeline
 from fastapi import FastAPI
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from diffusers import DiffusionPipeline
+from src.models.training import load_and_set_lora_ckpt
 
-model = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.bfloat16)
-model.load_lora_weights(
-    "AML-group10/5e-4_30hyperparameter_tuning", weight_name="300_lora.pt"
-)
+base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
+model = load_and_set_lora_ckpt(base, 300)
 
 
 class ModelInput(BaseModel):
