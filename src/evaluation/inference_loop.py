@@ -9,8 +9,9 @@ sys.path.append("/scratch/s5965780/AML-project/src")
 from models.training.inference import load_and_set_lora_ckpt
 
 # Load validation prompts from HuggingFace
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", "valid", split="train")
+dataset = dataset.shuffle(seed=42).select(range(700))
 prompts = [item["prompt"][0] for item in dataset]
 
 # Attributes for evaluation
@@ -49,7 +50,7 @@ for model_name, step_count in models:
     folder_name = model_name.split("/")[-1]
     os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
-    base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32.to(device))
+    base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32).to(device)
     model = load_and_set_lora_ckpt(base, model_name, step_count, device)  
     generator = torch.Generator(device=device).manual_seed(67)
     print("Model loaded", folder_name)
