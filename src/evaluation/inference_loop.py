@@ -25,19 +25,19 @@ attributes = {
     "asian": ["asian", "chinese", "japanese", "korean"],
 }
 
-"""("AML-group10/1e-4_20hyperparameter_tuning", 200), julia
-    ("AML-group10/1e-4_15hyperparameter_tuning", 150), julia
-    ("AML-group10/1e-4_10hyperparameter_tuning", 100), julia
-    ("AML-group10/5e-4_10hyperparameter_tuning", 100), teddy
-    ("AML-group10/5e-4_15hyperparameter_tuning", 150),teddy
-    ("AML-group10/5e-4_20hyperparameter_tuning", 200), teddy
-    ("AML-group10/3e-4_10hyperparameter_tuning", 100), sophie
-    ("AML-group10/3e-4_15hyperparameter_tuning", 150), sophie
-    ("AML-group10/3e-4_20hyperparameter_tuning", 200) sophie """
+"""("AML-group10/1e-4_20_hyperparameter_tuning", 200, 1e-4, 20), julia
+    ("AML-group10/1e-4_15_hyperparameter_tuning", 150, 1e-4, 15), julia
+    ("AML-group10/1e-4_10_hyperparameter_tuning", 100, 1e-4, 10), julia
+    ("AML-group10/5e-4_10_hyperparameter_tuning", 100, 5e-4, 10), teddy
+    ("AML-group10/5e-4_15_hyperparameter_tuning", 150, 5e-4, 15),teddy
+    ("AML-group10/5e-4_20_hyperparameter_tuning", 200, 5e-4, 20), teddy
+    ("AML-group10/3e-4_10_hyperparameter_tuning", 100, 3e-4, 10), sophie
+    ("AML-group10/3e-4_15_hyperparameter_tuning", 150, 3e-4, 15), sophie
+    ("AML-group10/3e-4_20_hyperparameter_tuning", 200, 3e-4, 20) sophie """
 
 # Loop over all 9 models
 models = [
-    ("AML-group10/1e-4_20hyperparameter_tuning", 200)
+    ("AML-group10/1e-4_20_hyperparameter_tuning", 200, 1e-4, 20)
 ]
 
 os.makedirs("real_validation", exist_ok=True)
@@ -46,12 +46,12 @@ os.makedirs("validation_results", exist_ok=True)
 for i, item in enumerate(dataset):
     item["image"].save(f"real_validation/image_{i}.jpeg")
 
-for model_name, step_count in models:
+for model_name, step_count, lr, epochs in models:
     folder_name = model_name.split("/")[-1]
     os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
     base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32).to(device)
-    model = load_and_set_lora_ckpt(base, model_name, step_count, device)  
+    model = load_and_set_lora_ckpt(base, step_count, lr, epochs)
     generator = torch.Generator(device=device).manual_seed(67)
     print("Model loaded", folder_name)
     

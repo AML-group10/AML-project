@@ -5,12 +5,12 @@ import json
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 from huggingface_hub import hf_hub_download
 
-def load_and_set_lora_ckpt_original(pipe, step_count):
-    with open(os.path.join("./AML-group10/lora-output", f"{step_count}_lora_config.json"), "r") as f:
+def load_and_set_lora_ckpt_original(pipe, step_count, lr, epochs):
+    with open(os.path.join(f"./AML-group10/{lr}_{epochs}_hyperparameter_tuning", f"{step_count}_lora_config.json"), "r") as f:
         lora_config = json.load(f)
     print(lora_config)
 
-    lora_checkpoint_sd = torch.load(f"./AML-group10/lora-output/{step_count}_lora.pt")
+    lora_checkpoint_sd = torch.load(f"./AML-group10/{lr}_{epochs}_hyperparameter_tuning/{step_count}_lora.pt")
     unet_lora_ds = {k: v for k, v in lora_checkpoint_sd.items() if "text_encoder_" not in k}
     text_encoder_lora_ds = {
         k.replace("text_encoder_", ""): v for k, v in lora_checkpoint_sd.items() if "text_encoder_" in k
