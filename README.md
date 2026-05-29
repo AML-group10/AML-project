@@ -5,9 +5,11 @@
 ---
 
 ## Overview
+
 This project investigates how LoRA (Low-Rank Adaptation) fine-tuning affects image generation quality in
 Stable Diffusion, using the OpenFace-CQUPT dataset with human captions. We trained nine fine-tuned variants by
 performing a grid search over three learning rates and three epoch counts. We compared the best of those models with the pre-trained basline using quantitive evaluation metrics.
+
 ---
 
 ## Dataset
@@ -32,6 +34,7 @@ As the baseline, we used Segmind Tiny-SD, which is a lightweight distilled versi
 Link to the Segmind Tiny Stable Diffusion baseline model: https://huggingface.co/segmind/tiny-sd
 
 The code for training the model are included in 'src/models/training/'.
+
 ---
 
 ## Hyperparameter Tuning
@@ -49,6 +52,7 @@ We performed a full grid search across following values:
 
 ## Repository structure
 
+'''
 AML-PROJECT 
 |- archive/                             # Archived experiments                            
 |   |- cvae/                            # CVAE-based experiments    
@@ -72,6 +76,7 @@ AML-PROJECT
 |- requirements.txt
 |- run_inference.sh
 |- proposal.pdf
+'''
 
 --- 
 
@@ -91,7 +96,9 @@ AML-PROJECT
 ```
 
 3. Download model from HuggingFace
-FILL THAT IN
+```bash
+    FILL THAT IN
+```
 
 ---
 
@@ -99,21 +106,21 @@ FILL THAT IN
 ### Training
 Train a single fine-tuned model by specifying a learning rate and number of epochs:
 
-'''bash
+```bash
     python src/train/lora_train.py \
     --base_model models/baseline/ \
     --data_dir data/processed/ \
     --learning_rate 1e-4 \
     --epochs 10 \
     --output_dir models/finetuned/lr1e-4_ep10/
-'''
+```
 
 ### Inference
 Generate images from any model:
 
-'''bash
+```bash
     bash run_inference.sh
-'''
+```
 
 ---
 
