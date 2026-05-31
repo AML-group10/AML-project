@@ -43,11 +43,13 @@ def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
     pipe.to(device)
     return pipe
 
+
 # Load validation prompts from HuggingFace
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dataset = load_dataset("AML-group10/AML_project_preprocessed_dataset", "valid", split="train")
-# range was 700
-dataset = dataset.shuffle(seed=42).select(range(462, 700))
+device = "cpu"
+dataset = load_dataset(
+    "AML-group10/AML_project_preprocessed_dataset", "valid", split="train"
+)
+dataset = dataset.shuffle(seed=42).select(range(700))
 prompts = [item["prompt"][0] for item in dataset]
 
 # Attributes for evaluation
@@ -88,15 +90,17 @@ for model_name, step_count in models:
     folder_name = model_name.split("/")[-1]
     os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
-    base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32).to(device)
+    base = DiffusionPipeline.from_pretrained(
+        "segmind/tiny-sd", torch_dtype=torch.float32
+    ).to(device)
     model = load_and_set_lora_ckpt(base, model_name, step_count, device)
     generator = torch.Generator(device=device).manual_seed(67)
     print("Model loaded", folder_name)
-    
-    for i, prompt in enumerate(prompts, start = 462):
+
+    for i, prompt in enumerate(prompts):
         image = model(prompt, num_inference_steps=30, generator=generator).images[0]
         image.save(f"generated/{folder_name}/image_{i}.jpeg")
-'''
+
 # Run evaluation on each folder
 for model_name, _ in models:
     folder_name = model_name.split("/")[-1]
@@ -105,7 +109,6 @@ for model_name, _ in models:
         real_images_path="real_validation/",
         captions=prompts,
         attributes_dict=attributes,
-        output_file=f"validation_results/{folder_name}_results.json", 
-        compute_bias=False
+        output_file=f"validation_results/{folder_name}_results.json",
+        compute_bias=False,
     )
-'''
