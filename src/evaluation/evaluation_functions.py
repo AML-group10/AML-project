@@ -194,7 +194,7 @@ class Evaluator:
                 continue
 
             matched_images, matched_captions = zip(*matched)
-            scores = [self.compute_CLIP(img, cap) for img, cap in zip(matched_images, matched_captions)]
+            scores = [self._compute_CLIP(img, cap) for img, cap in zip(matched_images, matched_captions)]
 
             rows.append({
                 "Group":      group,
@@ -204,37 +204,6 @@ class Evaluator:
             })
 
         return pd.DataFrame(rows)
-
-
-attributes = {
-    "male": ["male", "man", "boy", "guy"],
-    "female": ["female", "woman", "girl", "lady"],
-    "young": ["young", "child", "teen", "baby"],
-    "old": ["old", "elderly"],
-    "white": ["white", "caucasian"],
-    "black": ["black", "african american"],
-    "asian": ["asian", "chinese", "japanese", "korean"],
-}
-
-def test_evaluation():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    evaluator = Evaluator(device=device)
-    captions = ["An asian woman with brown mediun length hair", "A man with short dark hair and short beard", "A man with red t-shirt"]
-
-    # CLIP
-    clip_results = evaluator.compute_CLIP_batch(
-        images_dir="evaluation/gen_test/",
-        texts=captions
-    )
-    print(f"CLIP scores: {clip_results}")
-
-    # FID
-    fid2 = evaluator.compute_FID("evaluation/real_test/", "evaluation/gen_test/")
-    print(f"FID2: {fid2:.2f}")
-
-    # Bias
-    bias_df = evaluator.compute_attribute_clip_table("evaluation/gen_test/", captions, attributes)
-    print(bias_df.to_string(index=False))
 
 
 def run_evaluation(
