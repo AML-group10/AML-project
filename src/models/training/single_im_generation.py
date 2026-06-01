@@ -55,7 +55,6 @@ device = "cpu"
 model_name = "AML-group10/5e-4_20_hyperparameter_tuning"
 step_count = 200
 
-os.makedirs("single_image", exist_ok=True)
 os.makedirs("validation_results", exist_ok=True)
 
 os.makedirs("generated/single_prompts", exist_ok=True)
