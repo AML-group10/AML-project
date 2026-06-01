@@ -47,7 +47,7 @@ def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
 # Load validation prompts from HuggingFace
 device = "cpu"
 dataset = load_dataset(
-    "AML-group10/AML_project_preprocessed_dataset", "valid", split="test"
+    "AML-group10/AML_project_preprocessed_dataset", "test", split="train"
 )
 # dataset = dataset.shuffle(seed=42).select(range(700))
 prompts = [item["prompt"][0] for item in dataset]
@@ -64,17 +64,17 @@ attributes = {
 }
 
 
-model_name = "AML-group10/3e-4_20_hyperparameter_tuning"
+model_name = "AML-group10/5e-4_20_hyperparameter_tuning"
 base = DiffusionPipeline.from_pretrained(
     "segmind/tiny-sd", torch_dtype=torch.float32
 ).to(device)
 
-os.makedirs("real_test_images", exist_ok=True)
+os.makedirs("real_test", exist_ok=True)
 os.makedirs("test_results", exist_ok=True)
 
-
-for i, item in enumerate(dataset):
-    item["image"].save(f"real_validation/image_{i}.jpeg")
+# Save true images
+# for i, item in enumerate(dataset):
+#     item["image"].save(f"real_test/image_{i}.jpeg")
 
 
 # generate images from the model and run evaluation
@@ -90,7 +90,7 @@ for i, prompt in enumerate(prompts):
 
 run_evaluation(
     generated_images_path=f"generated_test/{folder_name}",
-    real_images_path="real_test_images/",
+    real_images_path="real_test/",
     captions=prompts,
     attributes_dict=attributes,
     output_file=f"test_results/{folder_name}_results.json",
