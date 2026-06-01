@@ -9,7 +9,7 @@ from evaluation_functions import run_evaluation
 from huggingface_hub import hf_hub_download
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
-sys.path.append("/scratch/s5965780/AML-project/src")
+sys.path.append("/scratch/s5916771/AML-project/src")
 
 
 def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
@@ -64,13 +64,17 @@ attributes = {
 }
 
 # Loop over all 9 models
-models = [("AML-group10/3e-4_10_hyperparameter_tuning", 100)]
+models = [
+    ("AML-group10/3e-4_10_hyperparameter_tuning", 100)
+]
 
 os.makedirs("real_validation", exist_ok=True)
 os.makedirs("validation_results", exist_ok=True)
 
+'''
 for i, item in enumerate(dataset):
     item["image"].save(f"real_validation/image_{i}.jpeg")
+'''
 
 for model_name, step_count in models:
     folder_name = model_name.split("/")[-1]
