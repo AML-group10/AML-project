@@ -64,7 +64,8 @@ AML-PROJECT/
 │   ├── diffusion_models/    # Diffusion model experiments
 │   ├── dog/                 # Dataset experiments
 │   ├── lora-output/         # Test LoRA training outputs
-│   └── tests/               # Experimental test scripts
+│   ├── tests/               # Experimental test scripts
+|   └── notebooks/           # Old data preprocessing notebooks
 │
 ├── deployment/             # Deployment utilities
 │
@@ -75,8 +76,8 @@ AML-PROJECT/
 │   │   └── training/          # LoRA training scripts
 │   │
 │   ├── preprocessing/      # Data preprocessing pipelines
-|   |   └── notebooks/      # Data preprocessing notebooks
-│   └── results/            # Generated outputs + experiment logs
+|   |
+│   ├── results/            # Generated outputs + experiment logs
 |   |   └── validation_results/ # Results of the hyperparameter tuning
 │
 ├── README.md
@@ -194,7 +195,7 @@ To run the deployment, paste the following command into your terminal:
 ```
 uvicorn deployment.original_server:app --reload
 ```
-Create a second terminal window, and run the following command:
+Create a second terminal window, and run the command below. Remember to activate the virtual environment first (`source .venv/bin/activate`).
 ```
 streamlit run deployment/demo.py --server.port 8067
 ```
