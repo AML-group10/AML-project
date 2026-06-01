@@ -90,7 +90,7 @@ AML-PROJECT/
 ## Requirements
 
 - Python 3.10+
-- uv
+- uv installed
 
 ## Setup
 
@@ -102,9 +102,8 @@ cd AML-project
 
 2. Install dependencies using uv:
 ```bash
-pip install uv
-source .venv/bin/activate
 uv sync
+source .venv/bin/activate
 ```
 
 ---

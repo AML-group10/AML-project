@@ -5,6 +5,7 @@ import sys
 import torch
 from datasets import load_dataset
 from diffusers import DiffusionPipeline
+from evaluation_functions import run_evaluation
 from huggingface_hub import hf_hub_download
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
@@ -41,48 +42,57 @@ def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
     return pipe
 
 
-if __name__ == "__main__":
-    # Load validation prompts from HuggingFace
-    device = "cpu"
-    dataset = load_dataset(
-        "AML-group10/AML_project_preprocessed_dataset", "valid", split="train"
-    )
-    dataset = dataset.shuffle(seed=42).select(range(700))
-    prompts = [item["prompt"][0] for item in dataset]
+# Load validation prompts from HuggingFace
+device = "cpu"
+dataset = load_dataset(
+    "AML-group10/AML_project_preprocessed_dataset", "valid", split="train"
+)
+dataset = dataset.shuffle(seed=42).select(range(700))
+prompts = [item["prompt"][0] for item in dataset]
 
-    # Attributes for evaluation
-    attributes = {
-        "male": ["male", "man", "boy", "guy"],
-        "female": ["female", "woman", "girl", "lady"],
-        "young": ["young", "child", "teen", "baby"],
-        "old": ["old", "elderly"],
-        "white": ["white", "caucasian"],
-        "black": ["black", "african american"],
-        "asian": ["asian", "chinese", "japanese", "korean"],
-    }
+# Attributes for evaluation
+attributes = {
+    "male": ["male", "man", "boy", "guy"],
+    "female": ["female", "woman", "girl", "lady"],
+    "young": ["young", "child", "teen", "baby"],
+    "old": ["old", "elderly"],
+    "white": ["white", "caucasian"],
+    "black": ["black", "african american"],
+    "asian": ["asian", "chinese", "japanese", "korean"],
+}
 
-    # Loop over all 9 models
-    models = [("AML-group10/3e-4_10_hyperparameter_tuning", 100)]
+# Loop over all 9 models
+models = [
+    ("AML-group10/3e-4_10_hyperparameter_tuning", 100),
+    ("AML-group10/1e-4_10_hyperparameter_tuning", 100),
+    ("AML-group10/5e-4_10_hyperparameter_tuning", 100),
+    ("AML-group10/1e-4_15_hyperparameter_tuning", 150),
+    ("AML-group10/3e-4_15_hyperparameter_tuning", 150),
+    ("AML-group10/5e-4_15_hyperparameter_tuning", 150),
+    ("AML-group10/1e-4_20_hyperparameter_tuning", 200),
+    ("AML-group10/3e-4_20_hyperparameter_tuning", 200),
+    ("AML-group10/5e-4_20_hyperparameter_tuning", 200),
+]
 
-    os.makedirs("real_validation", exist_ok=True)
-    os.makedirs("validation_results", exist_ok=True)
+os.makedirs("real_validation", exist_ok=True)
+os.makedirs("validation_results", exist_ok=True)
 
-    """
-    for i, item in enumerate(dataset):
-        item["image"].save(f"real_validation/image_{i}.jpeg")
-    """
+'''
+for i, item in enumerate(dataset):
+    item["image"].save(f"real_validation/image_{i}.jpeg")
+'''
 
-    for model_name, step_count in models:
-        folder_name = model_name.split("/")[-1]
-        os.makedirs(f"generated/{folder_name}", exist_ok=True)
+for model_name, step_count in models:
+    folder_name = model_name.split("/")[-1]
+    os.makedirs(f"generated/{folder_name}", exist_ok=True)
 
-        base = DiffusionPipeline.from_pretrained(
-            "segmind/tiny-sd", torch_dtype=torch.float32
-        ).to(device)
-        model = load_and_set_lora_ckpt(base, model_name, step_count, device)
-        generator = torch.Generator(device=device).manual_seed(67)
-        print("Model loaded", folder_name)
+    base = DiffusionPipeline.from_pretrained(
+        "segmind/tiny-sd", torch_dtype=torch.float32
+    ).to(device)
+    model = load_and_set_lora_ckpt(base, model_name, step_count, device)
+    generator = torch.Generator(device=device).manual_seed(67)
+    print("Model loaded", folder_name)
 
-        for i, prompt in enumerate(prompts):
-            image = model(prompt, num_inference_steps=30, generator=generator).images[0]
-            image.save(f"generated/{folder_name}/image_{i}.jpeg")
+    for i, prompt in enumerate(prompts):
+        image = model(prompt, num_inference_steps=30, generator=generator).images[0]
+        image.save(f"generated/{folder_name}/image_{i}.jpeg")

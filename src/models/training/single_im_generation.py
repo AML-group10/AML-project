@@ -52,8 +52,8 @@ output_path = os.path.join("generated/single_prompts", args.output)
 # Load validation prompts from HuggingFace
 device = "cpu"
 
-model_name = "src/models/finetuned_models/5e-4_20_hyperparameter_tuning"
-step_count = 100
+model_name = "AML-group10/5e-4_20_hyperparameter_tuning"
+step_count = 200
 
 os.makedirs("single_image", exist_ok=True)
 os.makedirs("validation_results", exist_ok=True)
