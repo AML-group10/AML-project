@@ -195,7 +195,7 @@ To run the deployment, paste the following command into your terminal:
 ```
 uvicorn deployment.original_server:app --reload
 ```
-Create a second terminal window, and run the following command:
+Create a second terminal window, and run the command below. Remember to activate the virtual environment first (`source .venv/bin/activate`).
 ```
 streamlit run deployment/demo.py --server.port 8067
 ```
