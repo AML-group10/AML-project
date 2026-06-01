@@ -63,16 +63,6 @@ attributes = {
     "asian": ["asian", "chinese", "japanese", "korean"],
 }
 
-"""("AML-group10/1e-4_20_hyperparameter_tuning", 200), julia
-    ("AML-group10/1e-4_15_hyperparameter_tuning", 150), julia
-    ("AML-group10/1e-4_10_hyperparameter_tuning", 100), julia
-    ("AML-group10/5e-4_10_hyperparameter_tuning", 100), teddy
-    ("AML-group10/5e-4_15_hyperparameter_tuning", 150),teddy
-    ("AML-group10/5e-4_20_hyperparameter_tuning", 200), teddy
-    ("AML-group10/3e-4_10_hyperparameter_tuning", 100), sophie
-    ("AML-group10/3e-4_15_hyperparameter_tuning", 150), sophie
-    ("AML-group10/3e-4_20_hyperparameter_tuning", 200) sophie """
-
 # Loop over all 9 models
 models = [
     ("AML-group10/3e-4_10_hyperparameter_tuning", 100)
@@ -100,15 +90,3 @@ for model_name, step_count in models:
     for i, prompt in enumerate(prompts):
         image = model(prompt, num_inference_steps=30, generator=generator).images[0]
         image.save(f"generated/{folder_name}/image_{i}.jpeg")
-
-# Run evaluation on each folder
-for model_name, _ in models:
-    folder_name = model_name.split("/")[-1]
-    run_evaluation(
-        generated_images_path=f"generated/{folder_name}",
-        real_images_path="real_validation/",
-        captions=prompts,
-        attributes_dict=attributes,
-        output_file=f"validation_results/{folder_name}_results.json",
-        compute_bias=False,
-    )
