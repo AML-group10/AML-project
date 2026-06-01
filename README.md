@@ -90,6 +90,7 @@ AML-PROJECT/
 ## Requirements
 
 - Python 3.10+
+- uv
 
 ## Setup
 
@@ -196,7 +197,7 @@ uvicorn deployment.original_server:app --reload
 ```
 Create a second terminal window, and run the following command:
 ```
-streamlit run deployment/demo.py
+streamlit run deployment/demo.py --server.port 8067
 ```
 By now, you should be redirected to your browser: ```http://localhost:8067```. 
 
