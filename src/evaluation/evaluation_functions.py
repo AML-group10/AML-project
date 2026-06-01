@@ -251,6 +251,7 @@ def run_evaluation(
             "model": generated_images_path,
             "clip_mean": clip_results["mean_CLIP"],
             "clip_std": clip_results["std_CLIP"],
+            "clip_all_scores:": clip_results["scores"],
             "fid": fid_score,
             "bias_table": bias_df.to_dict(orient="records") if compute_bias else {}
         }
