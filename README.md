@@ -13,11 +13,11 @@ performing a grid search over three learning rates and three epoch counts. We co
 ---
 
 ## Dataset
-The dataset consists of around 10 million samples of images found on the internet, with human captions explaining them (OpenFaceCQUPT). We used NUMBER_OF_POINTS randomly chosen samples from the dataset with hman captions. The format of the images is JPEG.
+The dataset consists of around 10 million samples of images found on the internet, with human captions explaining them (OpenFaceCQUPT). We used 12,000 randomly chosen samples from the dataset with human captions. The format of the images is JPEG.
 
 Link to the original dataset: https://huggingface.co/datasets/OpenFace-CQUPT/FaceCaption-15M
 
-Both images and the captions were preprocessed by removing images containing multiple individuals or depicting nudity, excluding extremely low CLIP-scored images. All the detailed preprocessing scripts are available in 'src/preprocessing/'.
+Both images and the captions were preprocessed by removing images containing multiple individuals or depicting nudity, and excluding extremely low CLIP-scored images. We applied face detection to localize facial regions and used the resulting bounding boxes to crop each image, ensuring that only the face region was retained for subsequent processing. All the detailed preprocessing scripts are available in 'src/preprocessing/'. 
 
 Link to the preprocessed dataset: https://huggingface.co/datasets/AML-group10/AML_project_preprocessed_dataset 
 
@@ -51,32 +51,29 @@ We performed a full grid search across following values:
 ---
 
 ## Repository structure
-
-'''
-AML-PROJECT 
-|- archive/                             # Archived experiments                            
-|   |- cvae/                            # CVAE-based experiments    
-|   |- diffusion_models/                # Diffusion model experiments
-|   |- dog/                             # Dataset experiments
-|   |- lora-output/                     # Test LoRA training outputs
-|   |- tests/                           # Experimental test scripts
-|
-|- deployment/                          # Deployment utilities
-|
-|- src/    
-|   |- evaluation/                      # Evaluation and metric computation
-|   |- models/                  
-|   |   |- finetuned_models/            # 9 fine-tuned LoRA weights and training config
-|   |   |- training/                    # LoRA training scripts
-|   |
-|   |- preprocessing/                   # Data preprocessing pipelines
-|   |- results/                         # Generated outputs and experiment results
-|
-|- README.md
-|- requirements.txt
-|- run_inference.sh
-|- proposal.pdf
-'''
+AML-PROJECT/
+├── archive/                 # Archived experiments
+│   ├── cvae/                # CVAE-based experiments
+│   ├── diffusion_models/    # Diffusion model experiments
+│   ├── dog/                 # Dataset experiments
+│   ├── lora-output/         # Test LoRA training outputs
+│   └── tests/               # Experimental test scripts
+│
+├── deployment/             # Deployment utilities
+│
+├── src/
+│   ├── evaluation/         # Evaluation and metric computation
+│   ├── models/
+│   │   ├── finetuned_models/  # 9 fine-tuned LoRA weights + configs
+│   │   └── training/          # LoRA training scripts
+│   │
+│   ├── preprocessing/      # Data preprocessing pipelines
+│   └── results/            # Generated outputs + experiment logs
+│
+├── README.md
+├── requirements.txt
+├── run_inference.sh
+└── proposal.pdf
 
 --- 
 
@@ -84,20 +81,13 @@ AML-PROJECT
 
 1. Clone the repository:
 ```bash
-   git clone https://github.com/AML-group10/AML-project.git
-   cd AML-project
+    git clone https://github.com/AML-group10/AML-project.git
+    cd AML-project
 ```
 
-2. Create a virtual environment and install dependencies:
+2. Install dependencies using uv:
 ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-```
-
-3. Download model from HuggingFace
-```bash
-    FILL THAT IN
+    uv sync
 ```
 
 ---
@@ -116,10 +106,12 @@ Train a single fine-tuned model by specifying a learning rate and number of epoc
 ```
 
 ### Inference
-Generate images from any model:
+Generate single image from any model:
 
 ```bash
-    bash run_inference.sh
+    python src/models/training/inference.py \
+        --prompt "a man with curly black hair and blue eyes" \
+        --output image.jpeg
 ```
 
 ---

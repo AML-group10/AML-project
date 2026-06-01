@@ -2,6 +2,7 @@ from diffusers import DiffusionPipeline
 import torch
 import os
 import json
+import argparse
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 from huggingface_hub import hf_hub_download
 
@@ -68,3 +69,24 @@ prompt = "a man with curly black hair, blue eyes and a moustache"
 image = base(prompt).images[0]
 image.save("image_base.jpeg")
 """
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prompt", type=str, required=True)
+    parser.add_argument("--output", type=str, default="image.jpeg")
+    return parser.parse_args()
+
+
+args = parse_args()
+
+base = DiffusionPipeline.from_pretrained(
+    "segmind/tiny-sd",
+    torch_dtype=torch.float32
+)
+
+prompt = args.prompt
+
+image = base(prompt).images[0]
+image.save(args.output)
+
+print(f"Saved image to {args.output}")
