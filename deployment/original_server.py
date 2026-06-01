@@ -16,16 +16,36 @@ class ModelInput(BaseModel):
     prompt: str
 
 
-app = FastAPI(redirect_slashes=False)
+app = FastAPI(
+    redirect_slashes=False, description="This app generates images from text."
+)
 
 
 @app.get("/health")
 async def health():
+    """This function returns a message to confirm that the API works.
+
+    Returns:
+        Response: The confirmation message.
+    """
     return Response(content="This works.", media_type="txt")
 
 
 @app.post("/generate")
 async def generate_image(input_text: ModelInput):
+    """Generates an image from a prompt, using a fine-tuned
+    stable diffusion model, using 30 inference steps.
+
+    Args:
+        input_text (ModelInput): The prompt from which the image is generated.
+
+    Raises:
+        HTTPException 404: Prompt not found.
+        HTTPException 500: Text to image generation failed.
+
+    Returns:
+        Response: The generated PNG image.
+    """
     if not input_text.prompt:
         raise HTTPException(status_code=404, detail="Prompt not found.")
 
