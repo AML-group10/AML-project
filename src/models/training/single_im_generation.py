@@ -7,8 +7,6 @@ from diffusers import DiffusionPipeline
 from huggingface_hub import hf_hub_download
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
-sys.path.append("/scratch/s5965780/AML-project/src")
-
 
 def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
     config_path = hf_hub_download(
