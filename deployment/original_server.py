@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from archive.inference import load_and_set_lora_ckpt
+from src.models.training.inference_loop import load_and_set_lora_ckpt
 
 base = DiffusionPipeline.from_pretrained("segmind/tiny-sd", torch_dtype=torch.float32)
 model = load_and_set_lora_ckpt(base, "AML-group10/5e-4_20hyperparameter_tuning", 200)
