@@ -3,9 +3,7 @@ import os
 import sys
 import argparse
 import torch
-from datasets import load_dataset
 from diffusers import DiffusionPipeline
-from evaluation_functions import run_evaluation
 from huggingface_hub import hf_hub_download
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
@@ -56,7 +54,7 @@ output_path = os.path.join("generated/single_prompts", args.output)
 # Load validation prompts from HuggingFace
 device = "cpu"
 
-model_name = "AML-group10/5e-4_20_hyperparameter_tuning"
+model_name = "src/models/finetuned_models/5e-4_20_hyperparameter_tuning"
 step_count = 100
 
 os.makedirs("single_image", exist_ok=True)

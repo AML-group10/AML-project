@@ -110,8 +110,15 @@ Generate single image from any model:
 
 ```bash
     python src/models/training/inference.py \
-        --prompt "a man with curly black hair and blue eyes" \
-        --output image.jpeg
+        --prompt <YOUR PROMPT> \
+        --output <FILE NAME>
+```
+
+Example command would be:
+```bash
+    python src/models/training/inference.py \
+        --prompt "a man with a beard and blue eyes" \
+        --output man_beard.jpeg
 ```
 
 ---
