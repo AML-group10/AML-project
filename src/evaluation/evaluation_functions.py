@@ -194,7 +194,7 @@ class Evaluator:
                 continue
 
             matched_images, matched_captions = zip(*matched)
-            scores = [self.compute_CLIP(img, cap) for img, cap in zip(matched_images, matched_captions)]
+            scores = [self._compute_CLIP(img, cap) for img, cap in zip(matched_images, matched_captions)]
 
             rows.append({
                 "Group":      group,
