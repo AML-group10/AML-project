@@ -26,4 +26,5 @@ for lr in "${learning_rates[@]}"; do
         --validation_epochs \
         --validation_prompt="a man with curly black hair, blue eyes and a moustache" \
         --seed=67
+    done
 done
