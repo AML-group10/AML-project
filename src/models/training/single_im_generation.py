@@ -1,7 +1,7 @@
+import argparse
 import json
 import os
-import sys
-import argparse
+
 import torch
 from diffusers import DiffusionPipeline
 from huggingface_hub import hf_hub_download
@@ -9,6 +9,19 @@ from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
 
 def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
+    """
+    Loads the LORA weigths from a HuggingFace repository
+
+    Args:
+        pipe (DiffusionPipeline): the loaded base model
+        repo_id (str): a HuggingFace repository id where the LORA weights are stored
+        step_count (int): the number of steps the model was fine-tuned for
+        device (str): the device to which to run the computations
+    
+    Returns:
+        DiffudionPipleline: the base model with loaded LORA weights
+
+    """
     config_path = hf_hub_download(
         repo_id=repo_id, filename=f"{step_count}_lora_config.json"
     )
@@ -39,11 +52,16 @@ def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
     pipe.to(device)
     return pipe
 
+
 def parse_args():
+    """
+    Parses the arguments needed to generate an image from a prompt
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, required=True)
     parser.add_argument("--output", type=str, default="image.jpeg")
     return parser.parse_args()
+
 
 args = parse_args()
 prompt = args.prompt
