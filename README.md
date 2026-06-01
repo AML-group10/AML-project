@@ -51,6 +51,7 @@ We performed a full grid search across following values:
 ---
 
 ## Repository structure
+```
 AML-PROJECT/
 ├── archive/                 # Archived experiments
 │   ├── cvae/                # CVAE-based experiments
@@ -74,6 +75,7 @@ AML-PROJECT/
 ├── requirements.txt
 ├── run_inference.sh
 └── proposal.pdf
+```
 
 --- 
 
@@ -116,7 +118,7 @@ Generate single image from any model:
 
 Example command would be:
 ```bash
-    python src/models/training/inference.py \
+    python src/models/training/single_im_generation.py \
         --prompt "a man with a beard and blue eyes" \
         --output man_beard.jpeg
 ```
