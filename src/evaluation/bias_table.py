@@ -32,4 +32,4 @@ def save_bias_table_png(json_path: str, output_path: str = "bias_table.png"):
     print(f"Saved to {output_path}")
 
 
-save_bias_table_png("test_results/baseline_results.json", "test_results/bias_table.png")
+save_bias_table_png("test_results/5e-4_20_hyperparameter_tuning_results.json", "test_results/bias_table_5e-4_20_hyperparameter_tuning.png")
