@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 
 import torch
 from datasets import load_dataset
@@ -9,10 +8,21 @@ from evaluation_functions import run_evaluation
 from huggingface_hub import hf_hub_download
 from peft import LoraConfig, LoraModel, set_peft_model_state_dict
 
-sys.path.append("/scratch/s5916771/AML-project/src")
-
 
 def load_and_set_lora_ckpt(pipe, repo_id, step_count, device="cpu"):
+    """
+    Loads the LORA weigths from a HuggingFace repository
+
+    Args:
+        pipe (DiffusionPipeline): the loaded base model
+        repo_id (str): a HuggingFace repository id where the LORA weights are stored
+        step_count (int): the number of steps the model was fine-tuned for
+        device (str): the device to which to run the computations
+    
+    Returns:
+        DiffudionPipleline: the base model with loaded LORA weights
+
+    """
     config_path = hf_hub_download(
         repo_id=repo_id, filename=f"{step_count}_lora_config.json"
     )
@@ -75,8 +85,8 @@ os.makedirs("test_results", exist_ok=True)
 """
 
 # Save true images
-# for i, item in enumerate(dataset):
-#     item["image"].save(f"real_test/image_{i}.jpeg")
+for i, item in enumerate(dataset):
+    item["image"].save(f"real_test/image_{i}.jpeg")
 
 """
 # generate images from the model and run evaluation

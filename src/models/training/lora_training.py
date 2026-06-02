@@ -1,24 +1,3 @@
-"""
-
-To run it with tinySD: (BUT CHANGE THE PARAMETERS FOR THE ACTUAL TRAINING)
-lora_training.py --pretrained_model_name_or_path="segmind/tiny-sd" --train_data_dir="./images_test_dataset" --output_dir="./lora-output" --use_peft --lora_r=4 --lora_alpha=4 --resolution=512 --train_batch_size=1 --gradient_accumulation_steps=4 --num_train_epochs=100 --learning_rate=1e-4 --validation_prompt="people with toothbrushes" --seed=42
-
-The images for training folder structure:
-|- images_test_dataset/
-|  |- metadata.jsonl
-|  |- image0.jpg
-|  |- image1.jpg
-|  |- ..
-|- lora-output/
-|  |- .. (created automatically after training)
-
-metadata.jsonl file has to look as follows:
-{"file_name": "image0.jpg", "text": "your caption here"}
-{"file_name": "image1.jpg", "text": "your caption here"}
-...
-
-"""
-
 # coding=utf-8
 # Copyright 2023 The HuggingFace Inc. team. All rights reserved.
 #

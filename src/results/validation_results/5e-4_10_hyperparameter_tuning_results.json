@@ -1,0 +1,7 @@
+{
+    "model": "generated/5e-4_10_hyperparameter_tuning",
+    "clip_mean": 0.16387942338362335,
+    "clip_std": 0.053094070766783526,
+    "fid": 88.1147689819336,
+    "bias_table": {}
+}
