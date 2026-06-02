@@ -49,8 +49,9 @@ device = "cpu"
 dataset = load_dataset(
     "AML-group10/AML_project_preprocessed_dataset", "test", split="train"
 )
-# dataset = dataset.shuffle(seed=42).select(range(700))
+#dataset = dataset.shuffle(seed=42).select(range(700))
 prompts = [item["prompt"][0] for item in dataset]
+#prompts = prompts[0:256]
 
 # Attributes for evaluation
 attributes = {
@@ -63,7 +64,7 @@ attributes = {
     "asian": ["asian", "chinese", "japanese", "korean"],
 }
 
-
+"""
 model_name = "AML-group10/5e-4_20_hyperparameter_tuning"
 base = DiffusionPipeline.from_pretrained(
     "segmind/tiny-sd", torch_dtype=torch.float32
@@ -71,12 +72,13 @@ base = DiffusionPipeline.from_pretrained(
 
 os.makedirs("real_test", exist_ok=True)
 os.makedirs("test_results", exist_ok=True)
+"""
 
 # Save true images
 # for i, item in enumerate(dataset):
 #     item["image"].save(f"real_test/image_{i}.jpeg")
 
-
+"""
 # generate images from the model and run evaluation
 folder_name = model_name.split("/")[-1]
 os.makedirs(f"generated_test/{folder_name}", exist_ok=True)
@@ -98,18 +100,23 @@ run_evaluation(
 )
 
 
+
 # generate images from the baseline model and run evaluation
 folder_name = "baseline"
 os.makedirs(f"generated_test/{folder_name}", exist_ok=True)
 generator = torch.Generator(device=device).manual_seed(67)
 
 for i, prompt in enumerate(prompts):
+    if i in range(0,868):
+        continue
     image = base(prompt, num_inference_steps=30, generator=generator).images[0]
     image.save(f"generated_test/{folder_name}/image_{i}.jpeg")
+"""
 
+folder_name = "baseline"
 run_evaluation(
     generated_images_path=f"generated_test/{folder_name}",
-    real_images_path="real_test_images/",
+    real_images_path="real_test/",
     captions=prompts,
     attributes_dict=attributes,
     output_file=f"test_results/{folder_name}_results.json",

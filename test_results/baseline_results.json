@@ -1,0 +1,50 @@
+{
+    "model": "generated_test/baseline",
+    "clip_mean": 0.16079553020912743,
+    "clip_std": 0.051842662142924954,
+    "fid": 91.89286804199219,
+    "bias_table": [
+        {
+            "Group": "male",
+            "Number of images": 264,
+            "Mean CLIP": 0.1434,
+            "Std CLIP": 0.0533
+        },
+        {
+            "Group": "female",
+            "Number of images": 395,
+            "Mean CLIP": 0.1685,
+            "Std CLIP": 0.0486
+        },
+        {
+            "Group": "young",
+            "Number of images": 331,
+            "Mean CLIP": 0.1625,
+            "Std CLIP": 0.0504
+        },
+        {
+            "Group": "old",
+            "Number of images": 2,
+            "Mean CLIP": 0.1557,
+            "Std CLIP": 0.0554
+        },
+        {
+            "Group": "white",
+            "Number of images": 283,
+            "Mean CLIP": 0.1665,
+            "Std CLIP": 0.0528
+        },
+        {
+            "Group": "black",
+            "Number of images": 352,
+            "Mean CLIP": 0.1629,
+            "Std CLIP": 0.0498
+        },
+        {
+            "Group": "asian",
+            "Number of images": 4,
+            "Mean CLIP": 0.1824,
+            "Std CLIP": 0.0267
+        }
+    ]
+}
